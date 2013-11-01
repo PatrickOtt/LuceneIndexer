@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
@@ -73,6 +75,34 @@ public class SearchDirectory {
 		return results;
 	}
 	
+	public List<String> searchWithPhrase(String queryString) {
+		Analyzer analyzer = new KeywordAnalyzer();
+		QueryParser parser	= new QueryParser(Version.LUCENE_45, "content", analyzer);
+		parser.setAllowLeadingWildcard(true);
+		parser.setAutoGeneratePhraseQueries(true);
+		
+		if(indexSearcher == null) {
+			initializeIndexSearcher();
+		}
+		
+		try {
+			Query query = parser.parse(queryString);
+			TopScoreDocCollector collector = TopScoreDocCollector.create(100, true);
+			indexSearcher.search(query, collector);
+			ScoreDoc[] docs = collector.topDocs().scoreDocs;
+			for(ScoreDoc sc : docs) {
+				results.add("Score: " + sc.score + " " + indexSearcher.doc(sc.doc).get("content"));
+			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return results;
+	}
 	public void closeSearchDirectory() {
 		if(indexStore != null) {
 			try {
